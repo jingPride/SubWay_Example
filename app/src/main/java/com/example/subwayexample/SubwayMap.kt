@@ -1,16 +1,17 @@
 package com.example.subwayexample
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.GestureDetector
+import android.view.GestureDetector.SimpleOnGestureListener
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
-import android.widget.ImageView
-import android.widget.TextView
-import android.widget.Toast
+import android.view.animation.ScaleAnimation
+import android.widget.*
+import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintSet
 import com.sothree.slidinguppanel.SlidingUpPanelLayout
-import java.lang.Float
 
 class SubwayMap : AppCompatActivity() {
 
@@ -18,22 +19,31 @@ class SubwayMap : AppCompatActivity() {
     lateinit var subwaymap : ImageView  // subwaymap
     lateinit var slidePanel : SlidingUpPanelLayout
 
+    lateinit var scrollView: HorizontalScrollView
+    lateinit var gestureDetector: GestureDetector
+
     var mScaleFactor = 1.0f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_subway_map)
 
-        subwaymap = findViewById(R.id.imageView);
+        subwaymap = findViewById(R.id.imageView)
+        gestureDetector = GestureDetector(this, GestureListener())
         mScaleGestureDetector = ScaleGestureDetector(this, ScaleListener())
+        scrollView = findViewById(R.id.hz_scroll)
 
         slidePanel = findViewById(R.id.main_frame)
         slidePanel.addPanelSlideListener(PanelEventListener())
 
-        subwaymap.setOnTouchListener(View.OnTouchListener{ view, motionEvent ->
+/*
+        scrollView.setOnTouchListener(View.OnTouchListener{ view, motionEvent ->
             mScaleGestureDetector.onTouchEvent(motionEvent);
+            Log.i("Log ", mScaleFactor.toString())
             return@OnTouchListener true
         })
+ */
+
 
         subwaymap.setOnClickListener{
             Toast.makeText(applicationContext, "Click Listener", Toast.LENGTH_SHORT).show()
@@ -50,6 +60,23 @@ class SubwayMap : AppCompatActivity() {
 
     }
 
+    override fun dispatchTouchEvent(event: MotionEvent?): Boolean {
+        super.dispatchTouchEvent(event)
+        mScaleGestureDetector.onTouchEvent(event)
+        gestureDetector.onTouchEvent(event)
+        return gestureDetector.onTouchEvent(event)
+    }
+    private class GestureListener : SimpleOnGestureListener() {
+        override fun onDown(e: MotionEvent): Boolean {
+            return true
+        }
+
+        override fun onDoubleTap(e: MotionEvent): Boolean {
+            return true
+        }
+    }
+
+
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         mScaleGestureDetector?.onTouchEvent(event)
         return true
@@ -58,6 +85,24 @@ class SubwayMap : AppCompatActivity() {
     // pinch zoom
     inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener(){
         override fun onScale(detector: ScaleGestureDetector?): Boolean {
+            var scale = 1 - detector!!.scaleFactor
+            var prevScale = mScaleFactor
+            mScaleFactor += scale
+
+            if (mScaleFactor > 1f)
+                mScaleFactor = 1f
+            else if (mScaleFactor < 0.5f)
+                mScaleFactor = 0.5f
+
+
+            var scaleAnimation = ScaleAnimation(1f / prevScale, 1f / mScaleFactor, 1f / prevScale, 1f / mScaleFactor,
+                detector!!.getFocusX(), detector!!.getFocusY())
+            scaleAnimation.duration = 0
+            scaleAnimation.fillAfter = true
+
+            scrollView.startAnimation(scaleAnimation)
+            return true
+            /*
             mScaleFactor *= mScaleGestureDetector.scaleFactor
 
             mScaleFactor = Float.max(0.1f, Float.min(mScaleFactor, 5.0f))
@@ -66,6 +111,7 @@ class SubwayMap : AppCompatActivity() {
             subwaymap.scaleY = mScaleFactor
 
             return true
+            */
         }
     }
 
